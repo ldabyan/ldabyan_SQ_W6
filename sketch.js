@@ -123,15 +123,18 @@ const STATE_OVER = "over";
 let gameState = STATE_PLAY;
 
 // ------------------------------------------------------------
-// SOUNDS — uncomment and fill in paths to add audio
+// SOUNDS
 // ------------------------------------------------------------
-// let shootSound;
-// let hitSound;
-// let playerHitSound;
-// let bossHitSound;
-// let bossMusic;
-// let winSound;
-// let music;
+let shootSound;
+let hitSound;
+let playerHitSound;
+let music;
+
+// ------------------------------------------------------------
+// IMAGES
+// ------------------------------------------------------------
+let bgImage;
+let playerImg;
 
 // ============================================================
 // preload()
@@ -140,14 +143,13 @@ function preload() {
   enemyData    = loadJSON("data/enemies.json");
   obstacleData = loadJSON("data/obstacles.json");
 
-  // Uncomment to load sounds:
-  // shootSound     = loadSound("assets/sounds/shoot.wav");
-  // hitSound       = loadSound("assets/sounds/hit.wav");
-  // playerHitSound = loadSound("assets/sounds/playerhit.wav");
-  // bossHitSound   = loadSound("assets/sounds/bosshit.wav");
-  // bossMusic      = loadSound("assets/sounds/bossmusic.mp3");
-  // winSound       = loadSound("assets/sounds/win.wav");
-  // music          = loadSound("assets/sounds/music.mp3");
+  bgImage   = loadImage("assets/images/background.png");
+  playerImg = loadImage("assets/images/player.png");
+
+  shootSound     = loadSound("assets/sounds/shoot.mp3");
+  hitSound       = loadSound("assets/sounds/hit.mp3");
+  playerHitSound = loadSound("assets/sounds/hit.mp3");
+  music          = loadSound("assets/sounds/music.mp3");
 }
 
 // ============================================================
@@ -180,8 +182,7 @@ function setup() {
   camX = player.x - width / 2;
   camY = player.y - height / 2;
 
-  // Uncomment to start music:
-  // music.loop();
+  music.loop();
 }
 
 // ============================================================
@@ -343,11 +344,11 @@ function checkObstaclePlayerCollision() {
         player.bounceVY = (dy / len) * 8;
       }
 
-      // playerHitSound.play();
+      playerHitSound.play();
 
       if (player.health <= 0) {
         gameState = STATE_OVER;
-        // music.stop();
+        music.stop();
       }
       break;
     }
@@ -376,22 +377,12 @@ function applyBounce() {
 // Only shapes near the camera are drawn for performance.
 // ------------------------------------------------------------
 function drawBackground() {
-  noStroke();
-  for (let i = 0; i < bgShapes.length; i++) {
-    let s = bgShapes[i];
-
-    // Skip shapes far from the camera view
-    if (
-      s.x < camX - s.size || s.x > camX + width + s.size ||
-      s.y < camY - s.size || s.y > camY + height + s.size
-    ) continue;
-
-    fill(s.r, s.g, s.b, 160);
-
-    if (s.type === "circle") {
-      ellipse(s.x, s.y, s.size);
-    } else {
-      rect(s.x - s.size / 2, s.y - s.size / 2, s.size, s.size, 3);
+  // Tile the background image across the world
+  let imgW = bgImage.width;
+  let imgH = bgImage.height;
+  for (let x = 0; x < WORLD_W; x += imgW) {
+    for (let y = 0; y < WORLD_H; y += imgH) {
+      image(bgImage, x, y, imgW, imgH);
     }
   }
 
@@ -452,7 +443,7 @@ function handleInput() {
       vy: player.direction.y * BULLET_SPEED,
     });
     player.shootTimer = SHOOT_COOLDOWN;
-    // shootSound.play();
+    shootSound.play();
   }
 }
 
@@ -663,11 +654,11 @@ function checkEnemyPlayerCollision() {
       player.health--;
       player.invincible      = true;
       player.invincibleTimer = INVINCIBLE_FRAMES;
-      // playerHitSound.play();
+      playerHitSound.play();
 
       if (player.health <= 0) {
         gameState = STATE_OVER;
-        // music.stop();
+        music.stop();
       }
       break;
     }
@@ -685,7 +676,7 @@ function checkBulletEnemyCollisions() {
         bullets.splice(i, 1);
         enemies.splice(j, 1);
         score++;
-        // hitSound.play();
+        hitSound.play();
         break;
       }
     }
@@ -790,32 +781,12 @@ function drawPlayer() {
   if (player.invincible && floor(player.invincibleTimer / 6) % 2 === 0) return;
 
   push();
-  fill(0, 200, 180);
-  noStroke();
-
-  beginShape();
-  let numPoints = 48;
-  for (let i = 0; i < numPoints; i++) {
-    let angle    = (TWO_PI / numPoints) * i;
-    let noiseVal = noise(cos(angle) * 0.8 + player.blobT, sin(angle) * 0.8 + player.blobT);
-    let r        = player.r + map(noiseVal, 0, 1, -6, 6);
-    vertex(player.x + cos(angle) * r, player.y + sin(angle) * r);
-  }
-  endShape(CLOSE);
-
-  fill(10);
-  ellipse(player.x - 7, player.y - 5, 7, 7);
-  ellipse(player.x + 7, player.y - 5, 7, 7);
-
-  fill(255);
-  ellipse(
-    player.x + player.direction.x * (player.r - 4),
-    player.y + player.direction.y * (player.r - 4),
-    8
-  );
-
+  imageMode(CENTER);
+  let angle = atan2(player.direction.y, player.direction.x) + HALF_PI;
+  translate(player.x, player.y);
+  rotate(angle);
+  image(playerImg, 0, 0, player.r * 2.2, player.r * 2.2);
   pop();
-  player.blobT += 0.015;
 }
 
 // ------------------------------------------------------------
